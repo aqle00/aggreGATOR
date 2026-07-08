@@ -11,8 +11,42 @@ import (
 	"github.com/google/uuid"
 )
 
+// prints all feeds to the console
+func handlerListFeeds(s *State, cmd Command) error {
+
+	// get feeds []string from the db
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("Failed to get feeds: %v", err)
+	}
+
+	//for loop
+	for i := range feeds {
+		username := getUsernameByID(s, feeds[i].UserID)
+		fmt.Printf("Name: %s", feeds[i].Name)
+		fmt.Printf("URL: %s", feeds[i].Url)
+		fmt.Printf("Created by: %s", username)
+	}
+	return nil
+}
+
+// helper for handlerListFeeds()
+func getUsernameByID(s *State, id uuid.UUID) string {
+	user, err := s.db.GetUserByID(context.Background(), id)
+	if err != nil {
+		fmt.Errorf("failed to get username: %v", err)
+		return ""
+	}
+	username := user.Name
+	return username
+}
+
 func handlerAddFeed(s *State, cmd Command) error {
-	//connect this to CreateFeed()
+	username := s.cfg.CurrentUserName
+	user, err := s.db.GetUser(context.Background(), username)
+	if err != nil {
+		return err
+	}
 
 	// check if name and url was provided
 	if len(cmd.args) != 2 {
@@ -21,18 +55,9 @@ func handlerAddFeed(s *State, cmd Command) error {
 	}
 
 	// stuff to use later when creating a feed
-	username := s.cfg.CurrentUserName
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return err
-	}
-
 	user_id := user.ID
-
 	name := cmd.args[0]
 	url := cmd.args[1]
-
-	// check if url is unique( url exists in the feed or no )
 
 	//make userParam strcut to use in CreateUser()
 	feedParams := database.CreateFeedParams{
@@ -47,7 +72,7 @@ func handlerAddFeed(s *State, cmd Command) error {
 	//call CreateFeed()
 	feed, err := s.db.CreateFeed(context.Background(), feedParams)
 	if err != nil {
-		return err
+		return fmt.Errorf("Couldnt create feed: %v", err)
 	}
 
 	fmt.Println("Feed created!")
