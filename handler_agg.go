@@ -12,7 +12,7 @@ func handlerAgg(s *State, cmd Command) error {
 	feedURL := "https://www.wagslane.dev/index.xml"
 	feed, err := fetchFeed(context.Background(), feedURL)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 
 	fmt.Printf("%v", feed)
