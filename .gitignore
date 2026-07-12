@@ -1,0 +1,18 @@
+skills-lock.json
+.agents/
+instructions.md# AI-related
+.agents/
+skills-lock.json
+instructions.md
+.ai/
+models/
+*.onnx
+*.pt
+*.bin
+embeddings/
+embeddings.db
+.cache/
+.hf/
+.openai/
+mlruns/
+.env
