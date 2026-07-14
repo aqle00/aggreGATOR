@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -26,18 +28,26 @@ func getUsername(cmd Command) string {
 //used like a type
 // if userExists(s, <username>) {do stuff}
 
-func userExists(s *State, username string) bool {
-	if _, err := s.db.GetUser(context.Background(), username); err != nil {
-		return false
+func userExists(s *State, username string) (bool, error) {
+	_, err := s.db.GetUser(context.Background(), username)
+	if err == nil {
+		return true, nil
 	}
-	return true
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return false, err
 }
 
 // login command
 func handlerLogin(s *State, cmd Command) error {
 	username := getUsername(cmd)
 
-	if !userExists(s, username) {
+	exists, err := userExists(s, username)
+	if err != nil {
+		return fmt.Errorf("failed to verify user: %v", err)
+	}
+	if !exists {
 		return fmt.Errorf("User %s does not exist. Please register first.\n", username)
 	}
 
@@ -52,7 +62,11 @@ func handlerLogin(s *State, cmd Command) error {
 func handlerRegister(s *State, cmd Command) error {
 	username := getUsername(cmd)
 
-	if userExists(s, username) {
+	exists, err := userExists(s, username)
+	if err != nil {
+		return fmt.Errorf("failed to verify user: %v", err)
+	}
+	if exists {
 		return fmt.Errorf("User %s already exists. Please login instead.\n", username)
 	}
 

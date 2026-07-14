@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
-
-	"os"
 	"time"
 
 	"github.com/aqle00/aggreGATOR/internal/database"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // prints all feeds to the console
@@ -41,41 +42,55 @@ func getUsernameByID(s *State, id uuid.UUID) string {
 	return username
 }
 
-func handlerAddFeed(s *State, cmd Command) error {
-	username := s.cfg.CurrentUserName
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return err
-	}
-
+func handlerAddFeed(s *State, cmd Command, user database.User) error {
 	// check if name and url was provided
 	if len(cmd.args) != 2 {
-		fmt.Printf(`usage: %s "<name>" "<url>"\n`, cmd.name)
-		os.Exit(1)
+		return fmt.Errorf(`usage: %s "<name>" "<url>"\n`, cmd.name)
 	}
 
 	// stuff to use later when creating a feed
-	user_id := user.ID
 	name := cmd.args[0]
 	url := cmd.args[1]
 
 	//make userParam strcut to use in CreateUser()
 	feedParams := database.CreateFeedParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Name:      name,
-		Url:       url,
-		UserID:    user_id,
+		ID:            uuid.New(),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		LastFetchedAt: sql.NullTime{},
+		Name:          name,
+		Url:           url,
+		UserID:        user.ID,
 	}
 
 	//call CreateFeed()
 	feed, err := s.db.CreateFeed(context.Background(), feedParams)
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == "23505" && pqErr.Constraint == "feeds_url_key" {
+				return fmt.Errorf("feed url already exists: %v", err)
+			}
+		}
 		return fmt.Errorf("Couldnt create feed: %v", err)
 	}
+	fmt.Printf("Created feed: %+v\n", feed)
+	//--------automatically follow created feed----------
 
-	fmt.Println("Feed created!")
+	autoFollowArg := []string{feed.Url}
+	autoFollowCmd := Command{
+		name: "follow",
+		args: autoFollowArg,
+	}
+
+	err = handlerFeedFollow(s, autoFollowCmd, user)
+	if err != nil {
+		return err
+	}
+
+	//------------------------------------------------------------------------------------------
+
+	fmt.Println("Feed created and followed!")
 	fmt.Printf("ID: %s\n", feed.ID)
 	fmt.Printf("Created At: %v\n", feed.CreatedAt)
 	fmt.Printf("Updated At: %v\n", feed.UpdatedAt)

@@ -51,8 +51,12 @@ func main() {
 	cliCommands.register("reset", handlerReset)
 	cliCommands.register("users", handlerGetUsers)
 	cliCommands.register("agg", handlerAgg)
-	cliCommands.register("addfeed", handlerAddFeed)
+	cliCommands.register("addfeed", middlewareLoggedIn(handlerAddFeed))
 	cliCommands.register("feeds", handlerListFeeds)
+	cliCommands.register("follow", middlewareLoggedIn(handlerFeedFollow))
+	cliCommands.register("following", middlewareLoggedIn(handlerFollowingFeeds))
+	cliCommands.register("unfollow", middlewareLoggedIn(handlerFeedUnfollow))
+	cliCommands.register("browse", middlewareLoggedIn(handlerBrowse))
 
 	// if < 2 that means there's only 1 argument
 	// which is defaulted to the program name
