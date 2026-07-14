@@ -13,3 +13,8 @@ embeddings.db
 .openai/
 mlruns/
 .env
+.goose
+gator
+aggreGATOR
+*.exe
+*.out
