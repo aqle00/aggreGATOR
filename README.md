@@ -88,7 +88,8 @@ gator login <user>
 
     Ex: login gatoruser
 
-- agg: show feed every <time>
+- agg: show feed continuously, takes a time duration to run as input
+
 
 ```bash
 gator agg <time>
